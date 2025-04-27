@@ -7,6 +7,12 @@ class GrokService {
 
   async analyzeMarket(price, historicalData, indicators, sentiment) {
     try {
+      // En environnement de production (GitHub Pages), utiliser l'analyse de secours
+      if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        console.log('Environnement de production détecté, utilisation de l\'analyse de secours');
+        return this.generateFallbackAnalysis(price, historicalData, indicators, sentiment);
+      }
+      
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
