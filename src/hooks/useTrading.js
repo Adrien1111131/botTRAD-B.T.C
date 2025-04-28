@@ -3,6 +3,7 @@ import grokService from '../services/grokService';
 import cryptoService from '../services/cryptoService';
 import analysisService from '../services/analysisService';
 import binanceService from '../services/binanceService';
+import predictionService from '../services/predictionService';
 
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY = 5000; // 5 secondes
@@ -38,6 +39,22 @@ const useTrading = () => {
     signal: 'ATTENDRE',
     confidence: 0,
     reason: 'Initialisation...'
+  });
+  
+  const [prediction, setPrediction] = useState({
+    direction: 'NEUTRE',
+    confidence: 0,
+    priceRanges: {
+      oneHour: { min: 0, max: 0, confidence: 0 },
+      fourHours: { min: 0, max: 0, confidence: 0 }
+    },
+    keyLevels: {
+      support: [],
+      resistance: [],
+      targets: []
+    },
+    reasons: [],
+    risks: []
   });
   const [signalHistory, setSignalHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -213,15 +230,29 @@ const useTrading = () => {
         ].slice(-10)); // Garder les 10 derniers signaux
       }
       
+      // Calcul des prédictions
+      const marketPrediction = predictionService.calculatePrediction(
+        priceData.price,
+        {
+          ...technicalIndicators,
+          rsiDivergence,
+          manipulation,
+          confluence,
+          currentPrice: priceData.price
+        },
+        sentiment
+      );
+      setPrediction(marketPrediction);
+
       // Fusion des signaux de Grok et de l'analyse de confluence
       const finalSignal = {
         ...analysis,
         confidence: manipulation.isManipulated ? 
           0 : // Si manipulation détectée, confiance = 0
-          (analysis.confidence + confluence.strength) / 2, // Moyenne des confiances
+          (analysis.confidence + confluence.strength + marketPrediction.confidence) / 3, // Moyenne des confiances
         reason: `${analysis.reason}\n\n${manipulation.isManipulated ? 
           'ATTENTION: Manipulation de marché détectée - ' + manipulation.details.join(', ') : 
-          confluence.reasons.join(', ')}`
+          confluence.reasons.join(', ')}\n\nPrédiction: ${marketPrediction.direction} (${(marketPrediction.confidence * 100).toFixed(1)}% de confiance)`
       };
 
       setTradingSignal(finalSignal);
@@ -270,6 +301,7 @@ const useTrading = () => {
     sentiment,
     riskManagement,
     tradingSignal,
+    prediction,
     signalHistory,
     isLoading,
     error,

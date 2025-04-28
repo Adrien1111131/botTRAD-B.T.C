@@ -21,7 +21,8 @@ const Dashboard = () => {
     indicators, 
     sentiment,
     riskManagement,
-    tradingSignal, 
+    tradingSignal,
+    prediction,
     signalHistory,
     isLoading, 
     error, 
@@ -221,6 +222,7 @@ const Dashboard = () => {
               <Tab label="Graphique" />
               <Tab label="Indicateurs Techniques" />
               <Tab label="Analyse" />
+              <Tab label="Prédictions" />
               <Tab label="Historique des Signaux" />
             </Tabs>
           </Paper>
@@ -716,8 +718,139 @@ const Dashboard = () => {
           </Paper>
           )}
 
-          {/* Historique des Signaux */}
+          {/* Prédictions */}
           {activeTab === 3 && (
+          <Paper elevation={3} sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>Prédictions de Prix</Typography>
+            <Divider sx={{ mb: 2 }} />
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Box>
+                {/* Direction et Confiance */}
+                <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(33, 150, 243, 0.1)', borderRadius: 1 }}>
+                  <Typography variant="h6" color="primary" gutterBottom>
+                    Tendance Prévue: <span style={{ backgroundColor: '#ffd700', color: 'black', padding: '0 4px', borderRadius: '2px' }}>{prediction.direction}</span>
+                  </Typography>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Confiance: {(prediction.confidence * 100).toFixed(1)}%
+                  </Typography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={prediction.confidence * 100}
+                    color={prediction.confidence > 0.7 ? 'success' : prediction.confidence > 0.4 ? 'warning' : 'error'}
+                    sx={{ mt: 1 }}
+                  />
+                </Box>
+
+                {/* Fourchettes de Prix */}
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Paper elevation={2} sx={{ p: 2, bgcolor: 'background.paper' }}>
+                      <Typography variant="subtitle1" color="primary" gutterBottom>
+                        Prévision 1 Heure
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2" color="error.main">
+                          Min: ${prediction.priceRanges.oneHour.min.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                        </Typography>
+                        <Typography variant="body2" color="success.main">
+                          Max: ${prediction.priceRanges.oneHour.max.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Confiance: {(prediction.priceRanges.oneHour.confidence * 100).toFixed(1)}%
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Paper elevation={2} sx={{ p: 2, bgcolor: 'background.paper' }}>
+                      <Typography variant="subtitle1" color="primary" gutterBottom>
+                        Prévision 4 Heures
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2" color="error.main">
+                          Min: ${prediction.priceRanges.fourHours.min.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                        </Typography>
+                        <Typography variant="body2" color="success.main">
+                          Max: ${prediction.priceRanges.fourHours.max.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                        </Typography>
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Confiance: {(prediction.priceRanges.fourHours.confidence * 100).toFixed(1)}%
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+
+                {/* Niveaux Clés */}
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="subtitle1" color="primary" gutterBottom>
+                    Niveaux Clés à Surveiller
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {prediction.keyLevels.targets.map((target, index) => (
+                      <Grid item xs={12} sm={6} key={index}>
+                        <Paper elevation={2} sx={{ p: 2, bgcolor: 'background.paper' }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            {target.type === 'SUPPORT' ? 'Support Cible' : 'Résistance Cible'}
+                          </Typography>
+                          <Typography variant="h6" color={target.type === 'SUPPORT' ? 'success.main' : 'error.main'}>
+                            ${target.price.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Confiance: {(target.confidence * 100).toFixed(1)}%
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+
+                {/* Raisons et Risques */}
+                <Grid container spacing={3} sx={{ mt: 2 }}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle1" color="primary" gutterBottom>
+                      Raisons
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {prediction.reasons.map((reason, index) => (
+                        <Chip 
+                          key={index}
+                          label={reason}
+                          color="primary"
+                          size="small"
+                          sx={{ m: 0.5 }}
+                        />
+                      ))}
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle1" color="error" gutterBottom>
+                      Risques
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {prediction.risks.map((risk, index) => (
+                        <Chip 
+                          key={index}
+                          label={risk}
+                          color="error"
+                          size="small"
+                          sx={{ m: 0.5 }}
+                        />
+                      ))}
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+          </Paper>
+          )}
+
+          {/* Historique des Signaux */}
+          {activeTab === 4 && (
           <Paper elevation={3} sx={{ p: 2 }}>
             <Typography variant="h6" gutterBottom>Historique des Signaux</Typography>
             <Divider sx={{ mb: 2 }} />
